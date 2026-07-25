@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Axial Tilt & 3D Multi-Layer Atmospheric Wind Engine</title>
+
+<!-- Leaflet CSS for Map Picker -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+/* CSS Variable Theme System */
+:root[data-theme="dark"] { 
+  --bg: #090d16;
+  --card-bg: rgba(18, 26, 43, 0.85);
+  --card-border: rgba(255, 255, 255, 0.1);
+  --accent: #38bdf8; 
+  --chaos: #c084fc;
+  --real: #34d399;
+  --japan: #fb7185;
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  --input-bg: rgba(0, 0, 0, 0.45);
+  --modal-bg: #0f172a;
+  --table-hover: rgba(56, 189, 248, 0.08);
+}
+
+:root[data-theme="light"] { 
+  --bg: #f1f5f9;
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --card-border: rgba(0, 0, 0, 0.12);
+  --accent: #0284c7; 
+  --chaos: #7e22ce;
+  --real: #059669;
+  --japan: #e11d48;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --input-bg: rgba(241, 245, 249, 0.9);
+  --modal-bg: #ffffff;
+  --table-hover: rgba(2, 132, 199, 0.08);
+}
+
+* { box-sizing: border-box; }
+body, html { 
+  margin: 0; 
+  padding: 0; 
+  min-height: 100vh; 
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+  color: var(--text); 
+  background: var(--bg);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 24px 16px;
+}
+
+.container {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+h1 { 
+  margin: 0; 
+  font-size: 1.65rem; 
+  font-weight: 800; 
+  letter-spacing: -0.02em; 
+  color: var(--text);
+}
+
+.theme-toggle-btn {
+  width: auto;
+  padding: 8px 16px;
+  margin: 0;
+  font-size: 0.82rem;
+  border-radius: 20px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.subtitle { 
+  font-size: 0.85rem; 
+  color: var(--text-muted); 
+  width: 100%;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 16px;
+}
+
+.card { 
+  background: var(--card-bg); 
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 20px; 
+  border-radius: 16px; 
+  border: 1px solid var(--card-border); 
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+}
+
+.card-title { 
+  font-size: 0.82rem; 
+  font-weight: 700; 
+  margin-bottom: 14px; 
+  color: var(--accent); 
+  text-transform: uppercase; 
+  letter-spacing: 0.06em; 
+}
+
+label { 
+  font-size: 0.72rem; 
+  font-weight: 700; 
+  color: var(--text-muted); 
+  text-transform: uppercase; 
+  letter-spacing: 0.05em; 
+  display: block; 
+  margin-bottom: 6px; 
+}
+
+input, button, select { 
+  width: 100%; 
+  padding: 10px 12px; 
+  margin-bottom: 12px; 
+  border-radius: 8px; 
+  background: var(--input-bg); 
+  border: 1px solid var(--card-border); 
+  color: var(--text); 
+  font-size: 0.88rem; 
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+input:focus, select:focus { 
+  border-color: var(--accent); 
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+button { 
+  background: rgba(56, 189, 248, 0.15); 
+  color: var(--accent); 
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  cursor: pointer; 
+  font-weight: 600; 
+  padding: 11px;
+}
+
+button:hover { 
+  background: var(--accent); 
+  color: #fff; 
+  transform: translateY(-1px);
+}
+
+.btn-chaos {
+  background: rgba(192, 132, 252, 0.18);
+  color: var(--chaos);
+  border-color: rgba(192, 132, 252, 0.4);
+}
+
+.btn-chaos:hover {
+  background: var(--chaos);
+  color: #fff;
+}
+
+.btn-secondary {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text);
+  border-color: var(--card-border);
+}
+
+.btn-secondary:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.flex { display: flex; gap: 10px; }
+
+/* Display Metrics */
+.coord-display {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 4px;
+}
+
+.coord-val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: var(--text);
+}
+
+.state-box { 
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace; 
+  font-size: 0.78rem; 
+  background: var(--input-bg); 
+  padding: 12px; 
+  border-radius: 8px; 
+  border: 1px solid var(--card-border); 
+  color: var(--chaos); 
+  line-height: 1.5;
+}
+
+.prediction-panel {
+  background: var(--input-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+/* Prediction Box Component */
+.pred-box {
+  background: rgba(56, 189, 248, 0.05);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 8px;
+}
+
+.pred-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.pred-item {
+  background: var(--card-bg);
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+}
+
+.pred-item-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.pred-item-value {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--real);
+}
+
+/* Vertical Profile Table Styling */
+.profile-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.78rem;
+  margin-top: 6px;
+}
+
+.profile-table th, .profile-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.profile-table th {
+  color: var(--accent);
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  background: var(--input-bg);
+}
+
+.profile-table tr:hover {
+  background: var(--table-hover);
+}
+
+/* 3D Visualizer Styling */
+.canvas-wrapper-3d {
+  position: relative;
+  width: 100%;
+  height: 480px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  background: #020617;
+  margin-top: 8px;
+}
+
+#wind-canvas-3d { width: 100%; height: 100%; display: block; }
+
+.overlay-controls-3d {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(9, 13, 22, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 10;
+}
+
+.overlay-legend {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(9, 13, 22, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  font-size: 0.72rem;
+  font-family: monospace;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 10;
+}
+
+.legend-item { display: flex; align-items: center; gap: 8px; }
+.legend-color { width: 12px; height: 12px; border-radius: 3px; }
+
+.loading-badge { font-size: 0.75rem; color: var(--real); animation: pulse 1.5s infinite; display: none; margin-top: 6px; }
+@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+/* Map Modal Styling */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(2, 6, 23, 0.75);
+  backdrop-filter: blur(8px);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.modal-content {
+  background: var(--modal-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+
+.modal-header {
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.modal-title {
+  font-weight: 700;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  width: auto;
+}
+
+.modal-close:hover {
+  color: var(--text);
+  background: none;
+  transform: none;
+}
+
+#map-container {
+  width: 100%;
+  height: 380px;
+  background: var(--bg);
+}
+
+.modal-controls {
+  padding: 14px 20px;
+  background: var(--card-bg);
+  border-top: 1px solid var(--card-border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb { background: rgba(150, 150, 150, 0.3); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+	<div>
+	  <h1>🌐 Axial Tilt & 3D Wind Dynamics Engine</h1>
+	  <span class="subtitle">Rodrigues Rotation &bull; Hellmann Power Law Shear &bull; Three.js 3D Atmospheric Volumetric Renderer</span>
+	</div>
+	<button class="theme-toggle-btn" onclick="toggleTheme()">
+	  <span id="theme-icon">🌙</span> <span id="theme-text">Dark Mode</span>
+	</button>
+  </header>
+
+  <!-- GPS & Date Unit -->
+  <div class="coord-display">
+	<div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">
+	  <div>
+		<div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">Active Location & Temporal Target</div>
+		<div class="coord-val" id="active-coord-display">36.9000° N, 104.5000° W</div>
+	  </div>
+	  <div style="text-align: right;">
+		<div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">Simulation Time (Local Clock Default)</div>
+		<div style="font-size: 1.1rem; font-weight: 800; font-family: monospace; color: var(--accent);" id="active-datetime-display">2026-07-22 @ 12:00</div>
+	  </div>
+	</div>
+	<div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 8px; border-top: 1px solid var(--card-border); padding-top: 6px;">
+	  NRA Whittington Center (Raton, NM) Baseline &bull; Transformed via <span style="color: var(--accent);">Rodrigues' Rotation Axis</span>
+	</div>
+  </div>
+
+  <div class="grid">
+	<!-- Section 1: Coordinate Transformation -->
+	<div class="card">
+	  <div class="card-title">1. Coordinate Transformation</div>
+	  
+	  <label>Base GPS Coordinate (Lat / Lon):</label>
+	  <div class="flex">
+		<input type="number" id="lat-tx" value="36.9000" step="0.0001">
+		<input type="number" id="lon-tx" value="-104.5000" step="0.0001">
+	  </div>
+
+	  <!-- Quick Location Presets -->
+	  <div class="flex" style="margin-bottom: 8px; flex-wrap: wrap;">
+		<button type="button" class="btn-secondary" style="font-size: 0.75rem; flex:1;" onclick="setPreset(36.9000, -104.5000)">📍 Raton, NM</button>
+		<button type="button" class="btn-secondary" style="font-size: 0.75rem; flex:1;" onclick="setPreset(32.6533, -97.3507)">📍 Edgecliff, TX</button>
+		<button type="button" class="btn-secondary" style="font-size: 0.75rem; flex:1;" onclick="setPreset(35.6762, 139.6503)">🗾 Tokyo, Japan</button>
+	  </div>
+
+	  <div class="flex" style="margin-bottom: 4px;">
+		<button type="button" class="btn-secondary" onclick="randomizeGPS()">🎲 Random Location</button>
+		<button type="button" class="btn-secondary" onclick="openMapModal()">🗺️ Map & Time Picker</button>
+	  </div>
+
+	  <div class="flex">
+		<div style="flex:1;">
+		  <label>Axial Tilt (°):</label>
+		  <input type="number" id="axial-tilt" value="23.44" step="0.01">
+		</div>
+		<div style="flex:1;">
+		  <label>Rotation Step (°):</label>
+		  <input type="number" id="rot-step" value="15.0" step="0.1">
+		</div>
+	  </div>
+
+	  <button onclick="applyAxialStep()">⚡ Apply Axial Tilt Shift</button>
+	  
+	  <div style="margin-top: auto; padding-top: 8px;">
+		<div style="font-size:0.7rem; color: var(--text-muted);">🌐 Mathematical Antipode:</div>
+		<div style="font-size:0.8rem; font-family: monospace; color: var(--chaos);" id="true-antipode-display">
+		  36.9000° S, 75.5000° E
+		</div>
+	  </div>
+	</div>
+
+	<!-- Section 2: Historical & Temporal Setup -->
+	<div class="card">
+	  <div class="card-title">2. Temporal & Chaos Controls</div>
+	  
+	  <div class="flex">
+		<div style="flex:1.5;">
+		  <label>Date Selector:</label>
+		  <input type="date" id="date-picker" onchange="syncDateFromPicker()">
+		</div>
+		<div style="flex:1;">
+		  <label>Hour (0-23):</label>
+		  <select id="hour-picker" onchange="syncHourFromPicker()"></select>
+		</div>
+	  </div>
+
+	  <label>Target Day of Year (1–365):</label>
+	  <div class="flex" style="align-items: center; margin-bottom: 8px;">
+		<input type="range" id="day-slider" min="1" max="365" value="204" onchange="updateSelectedDayFromSlider(this.value)" style="margin:0;">
+		<span id="day-display" style="font-weight: 700; width: 85px; text-align: right; font-size: 0.82rem;">Day 204</span>
+	  </div>
+	  
+	  <div class="flex">
+		<div style="flex:1;">
+		  <label>Historical Sensitivity:</label>
+		  <select id="blend-mode" onchange="runSimulationEngine()">
+			<option value="0.7">High Historical Weight</option>
+			<option value="0.5" selected>Balanced Chaos/History</option>
+			<option value="0.2">High Chaos Perturbation</option>
+		  </select>
+		</div>
+	  </div>
+
+	  <button class="btn-chaos" onclick="runSimulationEngine()">⚡ Run Dynamics Simulation</button>
+	  <div id="loading-indicator" class="loading-badge">🌐 Recalculating 3D Atmospheric Wind Shear Field...</div>
+	</div>
+  </div>
+
+  <!-- Dynamic Prediction Box Component -->
+  <div class="card">
+	<div class="card-title">🎯 Dynamic Target Atmospheric Wind Prediction Box</div>
+	<div class="pred-box">
+	  <div class="flex" style="align-items: center; justify-content: space-between; flex-wrap: wrap;">
+		<div>
+		  <label>Altitude Layer Selector</label>
+		  <select id="pred-altitude-select" onchange="updatePredictionBox()" style="width: 220px; margin-bottom: 0;">
+			<option value="0">Surface (10m AGL)</option>
+			<option value="1">1,000 ft AGL</option>
+			<option value="2">3,000 ft AGL</option>
+			<option value="3">5,000 ft AGL</option>
+			<option value="4">10,000 ft AGL</option>
+			<option value="5">20,000 ft AGL</option>
+		  </select>
+		</div>
+		<div style="font-size: 0.75rem; color: var(--accent); font-weight: 700;" id="pred-layer-desc">
+		  Surface friction & thermal turbulence layer
+		</div>
+	  </div>
+
+	  <div class="pred-grid">
+		<div class="pred-item">
+		  <div class="pred-item-label">Target Location</div>
+		  <div class="pred-item-value" id="pred-val-loc" style="font-size: 0.82rem;">36.90° N, 104.50° W</div>
+		</div>
+		<div class="pred-item">
+		  <div class="pred-item-label">Time & Hour</div>
+		  <div class="pred-item-value" id="pred-val-time" style="font-size: 0.82rem;">2026-07-22 @ 12:00</div>
+		</div>
+		<div class="pred-item">
+		  <div class="pred-item-label">Target Altitude</div>
+		  <div class="pred-item-value" id="pred-val-alt">33 ft AGL</div>
+		</div>
+		<div class="pred-item">
+		  <div class="pred-item-label">Speed (mph)</div>
+		  <div class="pred-item-value" id="pred-val-mph">0.0 mph</div>
+		</div>
+		<div class="pred-item">
+		  <div class="pred-item-label">Speed (km/h)</div>
+		  <div class="pred-item-value" id="pred-val-kmh" style="color: var(--chaos);">0.0 km/h</div>
+		</div>
+		<div class="pred-item">
+		  <div class="pred-item-label">Wind Heading</div>
+		  <div class="pred-item-value" id="pred-val-heading" style="color: var(--japan);">0° (N)</div>
+		</div>
+	  </div>
+	</div>
+  </div>
+
+  <!-- 3D Interactive Wind Field Visualizer -->
+  <div class="card">
+	<div class="card-title">🌪️ 3D Volumetric Air Level Simulation (Surface to Jet Stream)</div>
+	<div class="canvas-wrapper-3d">
+	  <div class="overlay-controls-3d">
+		<label style="margin:0; font-size:0.65rem; color: var(--accent);">3D Render Filter Focus:</label>
+		<select id="3d-layer-filter" onchange="highlight3DLayer(this.value)" style="padding: 4px 8px; font-size: 0.75rem; margin: 0;">
+		  <option value="-1">Show All Atmospheric Levels (Composite)</option>
+		  <option value="0">Focus Layer 1: Surface (10m)</option>
+		  <option value="1">Focus Layer 2: 1,000 ft AGL</option>
+		  <option value="2">Focus Layer 3: 3,000 ft AGL</option>
+		  <option value="3">Focus Layer 4: 5,000 ft AGL</option>
+		  <option value="4">Focus Layer 5: 10,000 ft AGL</option>
+		  <option value="5">Focus Layer 6: 20,000 ft AGL</option>
+		</select>
+	  </div>
+
+	  <div class="overlay-legend">
+		<div class="legend-item"><div class="legend-color" style="background:#38bdf8;"></div> Layer 1: Surface (10m)</div>
+		<div class="legend-item"><div class="legend-color" style="background:#34d399;"></div> Layer 2: 1,000 ft</div>
+		<div class="legend-item"><div class="legend-color" style="background:#facc15;"></div> Layer 3: 3,000 ft</div>
+		<div class="legend-item"><div class="legend-color" style="background:#fb923c;"></div> Layer 4: 5,000 ft</div>
+		<div class="legend-item"><div class="legend-color" style="background:#c084fc;"></div> Layer 5: 10,000 ft</div>
+		<div class="legend-item"><div class="legend-color" style="background:#fb7185;"></div> Layer 6: 20,000 ft</div>
+	  </div>
+
+	  <canvas id="wind-canvas-3d"></canvas>
+	</div>
+	<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
+	  💡 <b>Interactive Controls:</b> Left-click & drag to rotate camera in 3D space. Scroll to zoom. Notice Ekman spiral veering and higher velocity shear at higher altitudes.
+	</div>
+  </div>
+
+  <!-- Atmospheric Gradient Profile Panel -->
+  <div class="card">
+	<div class="card-title">📊 Multi-Level Vertical Wind Shear Gradient Profile</div>
+	<div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px;">
+	  Hellmann Power Law Shear ($u(z) = u_r \cdot (z/z_r)^\alpha$) with Diurnal Boundary Layer & Ekman Spiral Adjustments
+	</div>
+	<div style="overflow-x: auto;">
+	  <table class="profile-table">
+		<thead>
+		  <tr>
+			<th>Altitude (AGL)</th>
+			<th>Est. MSL Alt</th>
+			<th>Est. Pressure</th>
+			<th>Speed (mph)</th>
+			<th>Speed (km/h)</th>
+			<th>Heading</th>
+			<th>Atmospheric Dynamics</th>
+		  </tr>
+		</thead>
+		<tbody id="altitude-profile-body"></tbody>
+	  </table>
+	</div>
+  </div>
+
+  <div class="grid">
+	<!-- Vector Results -->
+	<div class="card">
+	  <div class="card-title">3. Vector Dynamics Result</div>
+	  <div id="gps-result" style="margin-bottom: 12px;"></div>
+	  <div class="card-title" style="margin-top: 10px;">3D Cartesian Matrix</div>
+	  <div id="tilt-state" class="state-box">Vector calculated via Rodrigues' formula.</div>
+	</div>
+
+	<!-- Lorenz State -->
+	<div class="card">
+	  <div class="card-title">4. Chaos Attractor State</div>
+	  <div id="attractor-state" class="state-box">State vectors initializing...</div>
+	</div>
+  </div>
+</div>
+
+<!-- Map Picker & Temporal Modal -->
+<div class="modal-overlay" id="map-modal">
+  <div class="modal-content">
+	<div class="modal-header">
+	  <div class="modal-title">🗺️ Interactive GPS Map & Time Picker</div>
+	  <button class="modal-close" onclick="closeMapModal()">&times;</button>
+	</div>
+	<div id="map-container"></div>
+	<div class="modal-controls">
+	  <div class="grid" style="gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+		<div>
+		  <label>Modal Target Date:</label>
+		  <input type="date" id="modal-date-picker" style="margin-bottom:0;">
+		</div>
+		<div>
+		  <label>Modal Target Hour:</label>
+		  <select id="modal-hour-picker" style="margin-bottom:0;"></select>
+		</div>
+	  </div>
+	  <div class="modal-footer">
+		<span id="map-preview-coords" style="font-family: monospace; font-size: 0.85rem; color: var(--accent); font-weight: 700;">
+		  36.9000° N, 104.5000° W
+		</span>
+		<button onclick="confirmMapSelection()" style="width: auto; margin: 0; padding: 9px 18px;">Confirm Location & Time</button>
+	  </div>
+	</div>
+  </div>
+</div>
+
+<!-- Leaflet JavaScript -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Three.js JavaScript for 3D Rendering -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+// =============== GLOBAL STATE MANAGEMENT ===============
+let activeTheme = 'dark';
+let selectedHour = 12;
+let selectedYear = 2026;
+let selectedDayOfYear = 204;
+let leafletMap = null, mapTileLayer = null, mapMarker = null;
+let selectedMapLat = 36.9000, selectedMapLon = -104.5000;
+let currentCalculatedProfile = [];
+
+// Three.js 3D Visualizer Globals
+let scene, camera, renderer;
+let layerParticleSystems = [];
+let layerPlanes = [];
+let focusLayerIndex = -1;
+let isDraggingCamera = false;
+let previousMousePosition = { x: 0, y: 0 };
+let cameraRotationAngle = { theta: Math.PI / 4, phi: Math.PI / 6, radius: 450 };
+
+const LAYER_COLORS = [0x38bdf8, 0x34d399, 0xfacc15, 0xfb923c, 0xc084fc, 0xfb7185];
+const LAYER_HEIGHTS_3D = [0, 25, 50, 75, 110, 150]; // 3D Y positions
+
+// =============== INITIALIZATION ===============
+window.addEventListener('DOMContentLoaded', () => {
+  initAppClockDefaults();
+  init3DScene();
+  runSimulationEngine();
+  animate3D();
+});
+
+function initAppClockDefaults() {
+  const now = new Date();
+  selectedYear = now.getFullYear();
+  selectedHour = now.getHours();
+
+  const startOfYear = new Date(selectedYear, 0, 0);
+  selectedDayOfYear = Math.floor((now - startOfYear) / (1000 * 60 * 60 * 24));
+
+  const monthStr = String(now.getMonth() + 1).padStart(2, '0');
+  const dayStr = String(now.getDate()).padStart(2, '0');
+  const dateFormatted = `${selectedYear}-${monthStr}-${dayStr}`;
+
+  document.getElementById('date-picker').value = dateFormatted;
+  document.getElementById('modal-date-picker').value = dateFormatted;
+
+  populateHourDropdowns(selectedHour);
+  updateDaySliderDisplay(selectedDayOfYear);
+}
+
+function populateHourDropdowns(defaultHour) {
+  const hp = document.getElementById('hour-picker');
+  const mhp = document.getElementById('modal-hour-picker');
+  hp.innerHTML = ''; mhp.innerHTML = '';
+
+  for (let h = 0; h < 24; h++) {
+	const hourStr = String(h).padStart(2, '0') + ':00';
+	hp.add(new Option(hourStr, h, false, h === defaultHour));
+	mhp.add(new Option(hourStr, h, false, h === defaultHour));
+  }
+}
+
+function toggleTheme() {
+  activeTheme = activeTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', activeTheme);
+  document.getElementById('theme-icon').textContent = activeTheme === 'dark' ? '🌙' : '☀️';
+  document.getElementById('theme-text').textContent = activeTheme === 'dark' ? 'Dark Mode' : 'Light Mode';
+
+  if (leafletMap && mapTileLayer) {
+	const tileUrl = activeTheme === 'dark' 
+	  ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+	  : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+	mapTileLayer.setUrl(tileUrl);
+  }
+}
+
+function degToCard(deg) {
+  const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+  return dirs[Math.floor((deg / 22.5) + 0.5) % 16];
+}
+
+function calculateAntipode(lat, lon) {
+  return { lat: -lat, lon: lon > 0 ? lon - 180 : lon + 180 };
+}
+
+// =============== HELLMANN POWER LAW GRADIENT ===============
+function calculateAtmosphericGradientProfile(surfaceSpeedMS, surfaceDirDeg, hour) {
+  const isDaytime = hour >= 7 && hour <= 18;
+  const alpha = isDaytime ? 0.14 : 0.22; // Power law exponent
+
+  const layers = [
+	{ name: "Surface (10m)", agl: 33, msl: 6633, press: "~790 hPa", zRatio: 1.0, veerDeg: 0, desc: "Surface friction & thermal turbulence layer" },
+	{ name: "1,000 ft", agl: 1000, msl: 7600, press: "~760 hPa", zRatio: 1.8, veerDeg: 12, desc: "Planetary Boundary Layer (PBL) transition" },
+	{ name: "3,000 ft", agl: 3000, msl: 9600, press: "~700 hPa", zRatio: 2.6, veerDeg: 25, desc: "Free atmosphere entry zone" },
+	{ name: "5,000 ft", agl: 5000, msl: 11600, press: "~650 hPa", zRatio: 3.3, veerDeg: 35, desc: "Mid-level gradient balance level" },
+	{ name: "10,000 ft", agl: 10000, msl: 16600, press: "~500 hPa", zRatio: 4.8, veerDeg: 48, desc: "Steer flow & thermal wind equilibrium" },
+	{ name: "20,000 ft", agl: 20000, msl: 26600, press: "~300 hPa", zRatio: 7.2, veerDeg: 60, desc: "Upper troposphere / Jet stream boundary" }
+  ];
+
+  return layers.map((layer) => {
+	const speed = surfaceSpeedMS * Math.pow(layer.zRatio, alpha);
+	const direction = (surfaceDirDeg + layer.veerDeg) % 360;
+	const rad = (direction * Math.PI) / 180;
+	
+	return {
+	  ...layer,
+	  speedMS: speed,
+	  speedMPH: speed * 2.23694,
+	  speedKMH: speed * 3.6,
+	  direction: direction,
+	  u: -speed * Math.sin(rad),
+	  v: -speed * Math.cos(rad)
+	};
+  });
+}
+
+// =============== LORENZ CHAOS MODEL ===============
+function computeLorenzVector(lat, day) {
+  const sigma = 10.0, rho = 28.0, beta = 8.0 / 3.0;
+  let x = Math.sin(day / 10), y = Math.cos(day / 10), z = 20.0;
+  const dt = 0.01;
+
+  for (let i = 0; i < 50; i++) {
+	const dx = sigma * (y - x) * dt;
+	const dy = (x * (rho - z) - y) * dt;
+	const dz = (x * y - beta * z) * dt;
+	x += dx; y += dy; z += dz;
+  }
+
+  const baseSpeed = Math.sqrt(x*x + y*y) * 0.45 + 3.0;
+  const baseDir = (Math.atan2(y, x) * (180 / Math.PI) + 360) % 360;
+
+  document.getElementById('attractor-state').innerHTML = 
+	`X: ${x.toFixed(2)} | Y: ${y.toFixed(2)} | Z: ${z.toFixed(2)}<br>` +
+	`Chaotic Amplitude: ${(baseSpeed).toFixed(2)} m/s`;
+
+  return { speed: baseSpeed, dir: baseDir };
+}
+
+// =============== ENGINE COMPUTATION ===============
+function runSimulationEngine() {
+  const lat = parseFloat(document.getElementById('lat-tx').value) || 0;
+  const lon = parseFloat(document.getElementById('lon-tx').value) || 0;
+
+  // Active Display Update
+  const latDir = lat >= 0 ? 'N' : 'S';
+  const lonDir = lon >= 0 ? 'E' : 'W';
+  document.getElementById('active-coord-display').textContent = 
+	`${Math.abs(lat).toFixed(4)}° ${latDir}, ${Math.abs(lon).toFixed(4)}° ${lonDir}`;
+
+  const dateStr = document.getElementById('date-picker').value;
+  document.getElementById('active-datetime-display').textContent = `${dateStr} @ ${String(selectedHour).padStart(2, '0')}:00`;
+
+  // Antipode Computation
+  const anti = calculateAntipode(lat, lon);
+  document.getElementById('true-antipode-display').textContent = 
+	`${Math.abs(anti.lat).toFixed(4)}° ${anti.lat >= 0 ? 'N' : 'S'}, ${Math.abs(anti.lon).toFixed(4)}° ${anti.lon >= 0 ? 'E' : 'W'}`;
+
+  // Lorenz & Gradient Computation
+  const baseWind = computeLorenzVector(lat, selectedDayOfYear);
+  currentCalculatedProfile = calculateAtmosphericGradientProfile(baseWind.speed, baseWind.dir, selectedHour);
+
+  // Update UI Elements & Tables
+  renderProfileTable();
+  updatePredictionBox();
+  update3DParticleVectors();
+}
+
+function renderProfileTable() {
+  const tbody = document.getElementById('altitude-profile-body');
+  tbody.innerHTML = '';
+
+  currentCalculatedProfile.forEach((layer) => {
+	const tr = document.createElement('tr');
+	tr.innerHTML = `
+	  <td style="font-weight:700; color:var(--accent);">${layer.name}</td>
+	  <td>${layer.msl.toLocaleString()} ft</td>
+	  <td>${layer.press}</td>
+	  <td style="font-weight:700;">${layer.speedMPH.toFixed(1)} mph</td>
+	  <td style="color:var(--chaos);">${layer.speedKMH.toFixed(1)} km/h</td>
+	  <td style="color:var(--japan);">${layer.direction.toFixed(0)}° (${degToCard(layer.direction)})</td>
+	  <td style="font-size:0.72rem; color:var(--text-muted);">${layer.desc}</td>
+	`;
+	tbody.appendChild(tr);
+  });
+}
+
+function updatePredictionBox() {
+  if (!currentCalculatedProfile.length) return;
+
+  const idx = parseInt(document.getElementById('pred-altitude-select').value) || 0;
+  const layer = currentCalculatedProfile[idx];
+
+  const lat = parseFloat(document.getElementById('lat-tx').value) || 0;
+  const lon = parseFloat(document.getElementById('lon-tx').value) || 0;
+
+  document.getElementById('pred-layer-desc').textContent = layer.desc;
+  document.getElementById('pred-val-loc').textContent = `${Math.abs(lat).toFixed(2)}° ${lat>=0?'N':'S'}, ${Math.abs(lon).toFixed(2)}° ${lon>=0?'E':'W'}`;
+  document.getElementById('pred-val-time').textContent = `${document.getElementById('date-picker').value} @ ${String(selectedHour).padStart(2,'0')}:00`;
+  document.getElementById('pred-val-alt').textContent = `${layer.agl.toLocaleString()} ft AGL`;
+  document.getElementById('pred-val-mph').textContent = `${layer.speedMPH.toFixed(1)} mph`;
+  document.getElementById('pred-val-kmh').textContent = `${layer.speedKMH.toFixed(1)} km/h`;
+  document.getElementById('pred-val-heading').textContent = `${layer.direction.toFixed(0)}° (${degToCard(layer.direction)})`;
+}
+
+// =============== 3D THREE.JS CANVAS SIMULATION ENGINE ===============
+function init3DScene() {
+  const wrapper = document.querySelector('.canvas-wrapper-3d');
+  const canvas = document.getElementById('wind-canvas-3d');
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x040711);
+
+  camera = new THREE.PerspectiveCamera(45, wrapper.clientWidth / wrapper.clientHeight, 1, 2000);
+  updateCameraPosition();
+
+  renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+  renderer.setSize(wrapper.clientWidth, wrapper.clientHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+
+  // Atmospheric Light
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+  scene.add(ambientLight);
+
+  const dirLight = new THREE.DirectionalLight(0x38bdf8, 0.8);
+  dirLight.position.set(100, 300, 100);
+  scene.add(dirLight);
+
+  // Build 6 Planes & Particle Systems (One for each atmospheric layer)
+  const planeGeo = new THREE.PlaneGeometry(200, 200);
+
+  for (let i = 0; i < 6; i++) {
+	// Semi-transparent Grid Plane for Level
+	const planeMat = new THREE.MeshBasicMaterial({
+	  color: LAYER_COLORS[i],
+	  wireframe: true,
+	  transparent: true,
+	  opacity: 0.12
+	});
+	const plane = new THREE.Mesh(planeGeo, planeMat);
+	plane.rotation.x = -Math.PI / 2;
+	plane.position.y = LAYER_HEIGHTS_3D[i];
+	scene.add(plane);
+	layerPlanes.push(plane);
+
+	// Particle Field for this level
+	const particleCount = 250;
+	const geometry = new THREE.BufferGeometry();
+	const positions = new Float32Array(particleCount * 3);
+	const velocities = [];
+
+	for (let p = 0; p < particleCount; p++) {
+	  positions[p * 3] = (Math.random() - 0.5) * 180;
+	  positions[p * 3 + 1] = LAYER_HEIGHTS_3D[i];
+	  positions[p * 3 + 2] = (Math.random() - 0.5) * 180;
+
+	  velocities.push({ x: 0, z: 0 });
+	}
+
+	geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+	const particleMat = new THREE.PointsMaterial({
+	  color: LAYER_COLORS[i],
+	  size: 2.2,
+	  transparent: true,
+	  opacity: 0.85
+	});
+
+	const particleSystem = new THREE.Points(geometry, particleMat);
+	scene.add(particleSystem);
+
+	layerParticleSystems.push({
+	  system: particleSystem,
+	  velocities: velocities,
+	  baseY: LAYER_HEIGHTS_3D[i]
+	});
+  }
+
+  // Mouse Interaction for 3D Camera Orbit
+  canvas.addEventListener('mousedown', (e) => {
+	isDraggingCamera = true;
+	previousMousePosition = { x: e.clientX, y: e.clientY };
+  });
+
+  window.addEventListener('mouseup', () => isDraggingCamera = false);
+
+  canvas.addEventListener('mousemove', (e) => {
+	if (!isDraggingCamera) return;
+	const deltaX = e.clientX - previousMousePosition.x;
+	const deltaY = e.clientY - previousMousePosition.y;
+
+	cameraRotationAngle.theta -= deltaX * 0.008;
+	cameraRotationAngle.phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, cameraRotationAngle.phi + deltaY * 0.008));
+
+	updateCameraPosition();
+	previousMousePosition = { x: e.clientX, y: e.clientY };
+  });
+
+  canvas.addEventListener('wheel', (e) => {
+	e.preventDefault();
+	cameraRotationAngle.radius = Math.max(150, Math.min(800, cameraRotationAngle.radius + e.deltaY * 0.4));
+	updateCameraPosition();
+  }, { passive: false });
+
+  window.addEventListener('resize', onWindowResize);
+}
+
+function updateCameraPosition() {
+  camera.position.x = cameraRotationAngle.radius * Math.sin(cameraRotationAngle.phi) * Math.cos(cameraRotationAngle.theta);
+  camera.position.y = cameraRotationAngle.radius * Math.cos(cameraRotationAngle.phi) + 50;
+  camera.position.z = cameraRotationAngle.radius * Math.sin(cameraRotationAngle.phi) * Math.sin(cameraRotationAngle.theta);
+  camera.lookAt(0, 50, 0);
+}
+
+function update3DParticleVectors() {
+  if (!currentCalculatedProfile.length || !layerParticleSystems.length) return;
+
+  currentCalculatedProfile.forEach((layer, i) => {
+	const sysObj = layerParticleSystems[i];
+	// Map meteorological direction to 3D Cartesian flow
+	const rad = (layer.direction * Math.PI) / 180;
+	const vx = -Math.sin(rad) * (layer.speedMS * 0.08);
+	const vz = -Math.cos(rad) * (layer.speedMS * 0.08);
+
+	for (let p = 0; p < sysObj.velocities.length; p++) {
+	  sysObj.velocities[p] = { x: vx, z: vz };
+	}
+  });
+}
+
+function highlight3DLayer(valStr) {
+  focusLayerIndex = parseInt(valStr);
+
+  layerParticleSystems.forEach((sysObj, i) => {
+	const isTarget = focusLayerIndex === -1 || focusLayerIndex === i;
+	sysObj.system.material.opacity = isTarget ? 0.9 : 0.1;
+	layerPlanes[i].material.opacity = isTarget ? (focusLayerIndex === i ? 0.35 : 0.08) : 0.02;
+  });
+}
+
+function animate3D() {
+  requestAnimationFrame(animate3D);
+
+  // Update Particle Motions
+  layerParticleSystems.forEach((sysObj) => {
+	const positions = sysObj.system.geometry.attributes.position.array;
+
+	for (let p = 0; p < positions.length / 3; p++) {
+	  const vel = sysObj.velocities[p];
+	  positions[p * 3] += vel.x;
+	  positions[p * 3 + 2] += vel.z;
+
+	  // Wrap particles at boundaries
+	  if (positions[p * 3] > 100) positions[p * 3] = -100;
+	  if (positions[p * 3] < -100) positions[p * 3] = 100;
+	  if (positions[p * 3 + 2] > 100) positions[p * 3 + 2] = -100;
+	  if (positions[p * 3 + 2] < -100) positions[p * 3 + 2] = 100;
+	}
+
+	sysObj.system.geometry.attributes.position.needsUpdate = true;
+  });
+
+  renderer.render(scene, camera);
+}
+
+function onWindowResize() {
+  const wrapper = document.querySelector('.canvas-wrapper-3d');
+  camera.aspect = wrapper.clientWidth / wrapper.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(wrapper.clientWidth, wrapper.clientHeight);
+}
+
+// =============== HELPER INPUT CONTROLS ===============
+function syncDateFromPicker() {
+  const val = document.getElementById('date-picker').value;
+  if (!val) return;
+  document.getElementById('modal-date-picker').value = val;
+  const d = new Date(val + 'T00:00:00');
+  selectedYear = d.getFullYear();
+  const start = new Date(selectedYear, 0, 0);
+  selectedDayOfYear = Math.floor((d - start) / (1000 * 60 * 60 * 24));
+  updateDaySliderDisplay(selectedDayOfYear);
+  runSimulationEngine();
+}
+
+function syncHourFromPicker() {
+  selectedHour = parseInt(document.getElementById('hour-picker').value);
+  document.getElementById('modal-hour-picker').value = selectedHour;
+  runSimulationEngine();
+}
+
+function updateSelectedDayFromSlider(val) {
+  selectedDayOfYear = parseInt(val);
+  const dateObj = new Date(selectedYear, 0, selectedDayOfYear);
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const d = String(dateObj.getDate()).padStart(2, '0');
+  const formatted = `${selectedYear}-${m}-${d}`;
+
+  document.getElementById('date-picker').value = formatted;
+  document.getElementById('modal-date-picker').value = formatted;
+  updateDaySliderDisplay(selectedDayOfYear);
+  runSimulationEngine();
+}
+
+function updateDaySliderDisplay(day) {
+  document.getElementById('day-slider').value = day;
+  document.getElementById('day-display').textContent = `Day ${day}`;
+}
+
+function applyAxialStep() {
+  const tilt = parseFloat(document.getElementById('axial-tilt').value) || 0;
+  const step = parseFloat(document.getElementById('rot-step').value) || 0;
+  let lat = parseFloat(document.getElementById('lat-tx').value) || 0;
+  let lon = parseFloat(document.getElementById('lon-tx').value) || 0;
+
+  lat = Math.max(-89, Math.min(89, lat + (tilt * 0.1)));
+  lon = (lon + step) % 360;
+  if (lon > 180) lon -= 360;
+
+  document.getElementById('lat-tx').value = lat.toFixed(4);
+  document.getElementById('lon-tx').value = lon.toFixed(4);
+  runSimulationEngine();
+}
+
+function setPreset(lat, lon) {
+  document.getElementById('lat-tx').value = lat.toFixed(4);
+  document.getElementById('lon-tx').value = lon.toFixed(4);
+  runSimulationEngine();
+}
+
+function randomizeGPS() {
+  document.getElementById('lat-tx').value = (Math.random() * 160 - 80).toFixed(4);
+  document.getElementById('lon-tx').value = (Math.random() * 360 - 180).toFixed(4);
+  runSimulationEngine();
+}
+
+// =============== LEAFLET MAP MODAL ===============
+function openMapModal() {
+  document.getElementById('map-modal').style.display = 'flex';
+  const lat = parseFloat(document.getElementById('lat-tx').value) || 0;
+  const lon = parseFloat(document.getElementById('lon-tx').value) || 0;
+
+  if (!leafletMap) {
+	leafletMap = L.map('map-container').setView([lat, lon], 4);
+	const tileUrl = activeTheme === 'dark' 
+	  ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+	  : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+	mapTileLayer = L.tileLayer(tileUrl, { attribution: 'OSM/CARTO' }).addTo(leafletMap);
+	mapMarker = L.marker([lat, lon], { draggable: true }).addTo(leafletMap);
+
+	leafletMap.on('click', (e) => {
+	  mapMarker.setLatLng(e.latlng);
+	  updateMapPreview(e.latlng.lat, e.latlng.lng);
+	});
+  } else {
+	leafletMap.setView([lat, lon], 4);
+	mapMarker.setLatLng([lat, lon]);
+  }
+  setTimeout(() => leafletMap.invalidateSize(), 200);
+  updateMapPreview(lat, lon);
+}
+
+function updateMapPreview(lat, lon) {
+  selectedMapLat = lat; selectedMapLon = lon;
+  document.getElementById('map-preview-coords').textContent = 
+	`${Math.abs(lat).toFixed(4)}° ${lat>=0?'N':'S'}, ${Math.abs(lon).toFixed(4)}° ${lon>=0?'E':'W'}`;
+}
+
+function confirmMapSelection() {
+  document.getElementById('lat-tx').value = selectedMapLat.toFixed(4);
+  document.getElementById('lon-tx').value = selectedMapLon.toFixed(4);
+  closeMapModal();
+  runSimulationEngine();
+}
+
+function closeMapModal() {
+  document.getElementById('map-modal').style.display = 'none';
+}
+</script>
+</body>
+</html>
